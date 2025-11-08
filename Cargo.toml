@@ -1,6 +1,15 @@
 [package]
 name = "sample-controller"
+default-run = "sample-controller"
 edition = "2024"
+
+[[bin]]
+name = "sample-controller"
+path = "src/main.rs"
+
+[[bin]]
+name = "crdgen"
+path = "src/crdgen.rs"
 
 [dependencies]
 k8s-openapi = { version = "0.26", features = ["v1_34"] }
