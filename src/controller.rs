@@ -81,15 +81,8 @@ impl Foo {
     }
 
     #[instrument(skip_all)]
-    async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action, Error> {
-        info!("cleaning up child deployment before removing Foo resource");
-
-        let deployments: Api<Deployment> =
-            Api::namespaced(ctx.client.clone(), &self.namespace().unwrap());
-
-        deployments
-            .delete(&self.spec.deployment_name, &Default::default())
-            .await?;
+    async fn cleanup(&self, _ctx: Arc<Context>) -> Result<Action, Error> {
+        info!("cleaning up process before removing Foo resource");
 
         Ok(Action::await_change())
     }
