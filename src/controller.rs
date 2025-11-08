@@ -57,7 +57,7 @@ impl Foo {
         let deployments: Api<Deployment> = Api::namespaced(client.clone(), &ns);
         let foos: Api<Foo> = Api::namespaced(client, &ns);
 
-        let pp = PatchParams::apply(FIELD_MANAGER_NAME);
+        let pp = PatchParams::apply(FIELD_MANAGER_NAME).force();
 
         let dp = deployments
             .patch(
