@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
     annotation("api-approved.kubernetes.io", "unapproved, experimental-only"),
     status = "FooStatus"
 )]
+#[serde(rename_all = "camelCase")]
 pub struct FooSpec {
     pub deployment_name: String,
     pub replicas: i32,
