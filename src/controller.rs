@@ -11,7 +11,7 @@ use kube::{
     Api, Resource, ResourceExt,
     api::{ListParams, ObjectMeta, Patch, PatchParams},
     client::Client,
-    runtime::{Controller, controller::Action, finalizer::Event as Finalizer, watcher::Config},
+    runtime::{Controller, controller::Action, finalizer::Event as Finalizer, watcher},
 };
 use tokio_stream::StreamExt;
 
@@ -95,9 +95,11 @@ fn error_policy(_object: Arc<Foo>, error: &Error, _ctx: Arc<Context>) -> Action 
 
 pub async fn run(ctx: Context) -> Result<(), Error> {
     let foos = Api::<Foo>::all(ctx.client.clone());
+    let deployments = Api::<Deployment>::all(ctx.client.clone());
     let _ = foos.list(&ListParams::default()).await?;
 
-    let stream = Controller::new(foos, Config::default().any_semantic())
+    let stream = Controller::new(foos, watcher::Config::default().any_semantic())
+        .owns(deployments, watcher::Config::default())
         .shutdown_on_signal()
         .run(reconcile, error_policy, Arc::new(ctx));
     let mut stream = std::pin::pin!(stream);
