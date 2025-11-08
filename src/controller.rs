@@ -28,11 +28,17 @@ pub struct Context {
     pub client: Client,
 }
 
+#[tracing::instrument(skip_all)]
 async fn reconcile(foo: Arc<Foo>, ctx: Arc<Context>) -> Result<Action, Error> {
     let ns = foo.namespace().unwrap();
     let foos: Api<Foo> = Api::namespaced(ctx.client.clone(), &ns);
 
-    println!("Reconciling Foo \"{}\" in {ns}", foo.name_any());
+    info!(
+        name = foo.name_any(),
+        namespace = ns,
+        "Reconciling Foo resource"
+    );
+
     kube::runtime::finalizer(&foos, FINALIZER_NAME, foo, |event| async {
         match event {
             Finalizer::Apply(foo) => foo.reconcile(ctx.clone()).await,
@@ -74,7 +80,10 @@ impl Foo {
         Ok(Action::await_change())
     }
 
+    #[instrument(skip_all)]
     async fn cleanup(&self, ctx: Arc<Context>) -> Result<Action, Error> {
+        info!("cleaning up child deployment before removing Foo resource");
+
         let deployments: Api<Deployment> =
             Api::namespaced(ctx.client.clone(), &self.namespace().unwrap());
 
@@ -87,7 +96,7 @@ impl Foo {
 }
 
 fn error_policy(_object: Arc<Foo>, error: &Error, _ctx: Arc<Context>) -> Action {
-    eprintln!("error occured: {error:?}");
+    error!(?error, "error occured");
     Action::requeue(Duration::from_secs(10))
 }
 
@@ -102,7 +111,7 @@ pub async fn run(ctx: Context) -> Result<(), Error> {
 
     while let Some(res) = stream.next().await {
         if let Err(e) = res {
-            eprintln!("error occured: {e:?}");
+            error!(error = ?e, "error occured");
         }
     }
 
