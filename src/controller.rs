@@ -15,7 +15,10 @@ use kube::{
 };
 use tokio_stream::StreamExt;
 
-use crate::{crd::Foo, error::Error};
+use crate::{
+    crd::{Foo, FooStatus},
+    error::Error,
+};
 
 const FIELD_MANAGER_NAME: &str = "sample-controller";
 const FINALIZER_NAME: &str = "sample-controller/finalizer";
@@ -45,14 +48,27 @@ impl Foo {
         let client = ctx.client.clone();
         let ns = self.namespace().unwrap();
 
-        let deployments: Api<Deployment> = Api::namespaced(client, &ns);
+        let deployments: Api<Deployment> = Api::namespaced(client.clone(), &ns);
+        let foos: Api<Foo> = Api::namespaced(client, &ns);
 
-        deployments
+        let pp = PatchParams::apply(FIELD_MANAGER_NAME);
+
+        let dp = deployments
             .patch(
                 &self.spec.deployment_name,
-                &PatchParams::apply(FIELD_MANAGER_NAME),
+                &pp,
                 &Patch::Apply(Deployment::from(self)),
             )
+            .await?;
+
+        let status = Patch::Apply(Foo {
+            status: Some(FooStatus {
+                available_replicas: dp.spec.as_ref().unwrap().replicas.unwrap(),
+            }),
+            ..Default::default()
+        });
+
+        foos.patch_status(&self.spec.deployment_name, &pp, &status)
             .await?;
 
         Ok(Action::await_change())
