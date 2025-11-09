@@ -1,12 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use k8s_openapi::{
-    api::{
-        apps::v1::{Deployment, DeploymentSpec},
-        core::v1::{Container, PodSpec, PodTemplateSpec},
-    },
-    apimachinery::pkg::apis::meta::v1::LabelSelector,
-};
+use k8s_openapi::api::apps::v1::Deployment;
 use kube::{
     Api, Resource, ResourceExt,
     api::{ListParams, ObjectMeta, Patch, PatchParams},
@@ -120,6 +114,14 @@ pub async fn run(ctx: Context) -> Result<(), Error> {
 
 impl From<&Foo> for Deployment {
     fn from(foo: &Foo) -> Self {
+        use k8s_openapi::{
+            api::{
+                apps::v1::DeploymentSpec,
+                core::v1::{Container, PodSpec, PodTemplateSpec},
+            },
+            apimachinery::pkg::apis::meta::v1::LabelSelector,
+        };
+
         let oref = foo.controller_owner_ref(&()).unwrap();
         let labels = BTreeMap::from_iter([
             ("app".to_string(), "nginx".to_string()),
