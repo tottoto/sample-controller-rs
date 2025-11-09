@@ -36,7 +36,7 @@ async fn reconcile(foo: Arc<Foo>, ctx: Arc<Context>) -> Result<Action, Error> {
     info!(
         name = foo.name_any(),
         namespace = ns,
-        "Reconciling Foo resource"
+        "reconciling Foo resource"
     );
 
     kube::runtime::finalizer(&foos, FINALIZER_NAME, foo, |event| async {
@@ -50,6 +50,7 @@ async fn reconcile(foo: Arc<Foo>, ctx: Arc<Context>) -> Result<Action, Error> {
 }
 
 impl Foo {
+    #[instrument(skip_all)]
     async fn apply(&self, ctx: Arc<Context>) -> Result<Action, Error> {
         let client = ctx.client.clone();
         let ns = self.namespace().unwrap();
@@ -84,15 +85,20 @@ impl Foo {
     }
 }
 
+#[instrument(skip_all)]
 fn error_policy(_object: Arc<Foo>, error: &Error, _ctx: Arc<Context>) -> Action {
     error!(?error, "error occured on reconcile loop");
     Action::requeue(Duration::from_secs(10))
 }
 
+#[instrument(skip_all)]
 pub async fn run(ctx: Context) -> Result<(), Error> {
     let foos = Api::<Foo>::all(ctx.client.clone());
     let deployments = Api::<Deployment>::all(ctx.client.clone());
+
+    info!("checking if CRDs are installed");
     let _ = foos.list(&ListParams::default()).await?;
+    info!("confirmed that CRDs are installed");
 
     let stream = Controller::new(foos, watcher::Config::default().any_semantic())
         .owns(deployments, watcher::Config::default())
@@ -100,11 +106,14 @@ pub async fn run(ctx: Context) -> Result<(), Error> {
         .run(reconcile, error_policy, Arc::new(ctx));
     let mut stream = std::pin::pin!(stream);
 
+    info!("starting up controller loop process");
     while let Some(res) = stream.next().await {
         if let Err(e) = res {
             error!(error = ?e, "error occured on controller loop");
         }
     }
+
+    info!("controller has been terminated");
 
     Ok(())
 }
