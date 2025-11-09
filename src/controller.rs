@@ -16,6 +16,7 @@ use crate::{
 
 const FIELD_MANAGER_NAME: &str = "sample-controller";
 const FINALIZER_NAME: &str = "sample-controller/finalizer";
+const DEFAULT_REQUEUE_ACTION: Action = Action::requeue(Duration::from_hours(1));
 
 #[derive(Clone)]
 pub struct Context {
@@ -68,14 +69,14 @@ impl Foo {
 
         foos.patch_status(deployment_name, &pp, &status).await?;
 
-        Ok(Action::await_change())
+        Ok(DEFAULT_REQUEUE_ACTION)
     }
 
     #[instrument(skip_all)]
     async fn cleanup(&self, _ctx: Arc<Context>) -> Result<Action, Error> {
         info!("cleaning up process before removing Foo resource");
 
-        Ok(Action::await_change())
+        Ok(DEFAULT_REQUEUE_ACTION)
     }
 }
 
