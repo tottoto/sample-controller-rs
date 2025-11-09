@@ -41,7 +41,7 @@ async fn reconcile(foo: Arc<Foo>, ctx: Arc<Context>) -> Result<Action, Error> {
 
     kube::runtime::finalizer(&foos, FINALIZER_NAME, foo, |event| async {
         match event {
-            Finalizer::Apply(foo) => foo.reconcile(ctx.clone()).await,
+            Finalizer::Apply(foo) => foo.apply(ctx.clone()).await,
             Finalizer::Cleanup(foo) => foo.cleanup(ctx.clone()).await,
         }
     })
@@ -50,7 +50,7 @@ async fn reconcile(foo: Arc<Foo>, ctx: Arc<Context>) -> Result<Action, Error> {
 }
 
 impl Foo {
-    async fn reconcile(&self, ctx: Arc<Context>) -> Result<Action, Error> {
+    async fn apply(&self, ctx: Arc<Context>) -> Result<Action, Error> {
         let client = ctx.client.clone();
         let ns = self.namespace().unwrap();
 
