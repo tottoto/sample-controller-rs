@@ -85,7 +85,7 @@ impl Foo {
 }
 
 fn error_policy(_object: Arc<Foo>, error: &Error, _ctx: Arc<Context>) -> Action {
-    error!(?error, "error occured");
+    error!(?error, "error occured on reconcile loop");
     Action::requeue(Duration::from_secs(10))
 }
 
@@ -102,7 +102,7 @@ pub async fn run(ctx: Context) -> Result<(), Error> {
 
     while let Some(res) = stream.next().await {
         if let Err(e) = res {
-            error!(error = ?e, "error occured");
+            error!(error = ?e, "error occured on controller loop");
         }
     }
 
