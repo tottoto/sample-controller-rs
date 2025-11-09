@@ -58,13 +58,10 @@ impl Foo {
         let foos: Api<Foo> = Api::namespaced(client, &ns);
 
         let pp = PatchParams::apply(FIELD_MANAGER_NAME).force();
+        let deployment_name = &self.spec.deployment_name;
 
         let dp = deployments
-            .patch(
-                &self.spec.deployment_name,
-                &pp,
-                &Patch::Apply(Deployment::from(self)),
-            )
+            .patch(deployment_name, &pp, &Patch::Apply(Deployment::from(self)))
             .await?;
 
         let status = Patch::Apply(Foo {
@@ -74,8 +71,7 @@ impl Foo {
             ..Default::default()
         });
 
-        foos.patch_status(&self.spec.deployment_name, &pp, &status)
-            .await?;
+        foos.patch_status(deployment_name, &pp, &status).await?;
 
         Ok(Action::await_change())
     }
